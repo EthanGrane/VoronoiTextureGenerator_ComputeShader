@@ -1,0 +1,124 @@
+#pragma kernel CSMain
+
+RWTexture2D<float4> Result;
+int NumberOfPoints;
+float seed;
+float saturation;
+float intersectionThreshold;
+bool tiled;
+bool inverted;
+int voronoiMode;
+
+// Random function Source:
+// https://gist.github.com/keijiro/24f9d505fac238c9a2982c0d6911d8e3
+// // Hash function from H. Schechter & R. Bridson, goo.gl/RXiKaH
+uint rand(uint s)
+{
+    s ^= 2747636419u;
+    s *= 2654435769u;
+    s ^= s >> 16;
+    s *= 2654435769u;
+    s ^= s >> 16;
+    s *= 2654435769u;
+    return s;
+}
+
+float rand01(uint seed)
+{
+    return float(rand(seed)) / 4294967295.0;
+}
+
+[numthreads(8, 8, 1)]
+void CSMain(uint3 id : SV_DispatchThreadID)
+{
+    uint width, height;
+    Result.GetDimensions(width, height);
+    float2 uv = id.xy / float2(width, height);
+
+    const int MAX_POINTS = 900;
+    int numberOfPoints = min(NumberOfPoints, MAX_POINTS); // Limitar a MAX_POINTS
+    float2 points[MAX_POINTS];
+    
+    for (int i = 0; i < numberOfPoints; i++)
+    {
+        points[i] = float2(rand01((i + 1) * seed), rand01(rand((i + 1) * seed)));
+    }
+    
+    if (tiled)
+    {
+        int originalPoints = numberOfPoints;
+        for (int i = 0; i < originalPoints && numberOfPoints < MAX_POINTS - 6; i++)
+        {
+            points[numberOfPoints++] = points[i] + float2(-1.0, 0.0);
+            points[numberOfPoints++] = points[i] + float2(1.0, 0.0);
+            points[numberOfPoints++] = points[i] + float2(0.0, -1.0);
+            points[numberOfPoints++] = points[i] + float2(0.0, 1.0);
+            points[numberOfPoints++] = points[i] + float2(-1.0, -1.0);
+            points[numberOfPoints++] = points[i] + float2(1.0, 1.0);
+        }
+    }
+
+    float maxDist = length(float2(0.5, 0.5));
+    float minDist = 999999999.0;
+    float secondMinDist = 999999999.0;
+    int closestSite = 0;
+    
+    for (int j = 0; j < numberOfPoints; j++)
+    {
+        float dist = distance(uv, points[j]);
+        if (dist < minDist)
+        {
+            secondMinDist = minDist;
+            minDist = dist;
+            closestSite = j;
+        }
+        else if (dist < secondMinDist)
+        {
+            secondMinDist = dist;
+        }
+    }
+
+    float4 color = float4(0, 0, 0, 1);
+
+    if (voronoiMode == 1) // Modo Floor con intersecciones
+    {
+        float normalizedDist = saturate(minDist / maxDist);
+    
+        if (inverted)
+            normalizedDist = abs(normalizedDist - 1);
+    
+        float floorColor = normalizedDist >= 0.5f ? 1 : 0;
+
+        float distDifference = secondMinDist - minDist;
+        // Ajustar al gusto
+        if (distDifference < intersectionThreshold)
+        {
+            float intersectionColor = abs(floorColor - 1);
+            color = float4(intersectionColor, intersectionColor, intersectionColor, 1);
+        }
+        else
+        {
+            color = float4(floorColor, floorColor, floorColor, 1);
+        }
+    }
+    else if (voronoiMode == 2) // Modo Diamantes
+    {
+        float normalizedDist = saturate((secondMinDist * saturation) / maxDist);
+    
+        if (inverted)
+            normalizedDist = abs(normalizedDist - 1);
+    
+        color = float4(normalizedDist, normalizedDist, normalizedDist, 1);
+    }
+    else
+    {
+        float normalizedDist = saturate((minDist * saturation) / maxDist);
+    
+        if (inverted)
+            normalizedDist = abs(normalizedDist - 1);
+    
+        color = float4(normalizedDist, normalizedDist, normalizedDist, 1);
+    }
+
+    Result[id.xy] = color;
+}
