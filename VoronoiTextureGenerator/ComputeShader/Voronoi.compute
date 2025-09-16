@@ -90,7 +90,6 @@ void CSMain(uint3 id : SV_DispatchThreadID)
         float floorColor = normalizedDist >= 0.5f ? 1 : 0;
 
         float distDifference = secondMinDist - minDist;
-        // Ajustar al gusto
         if (distDifference < intersectionThreshold)
         {
             float intersectionColor = abs(floorColor - 1);
@@ -122,3 +121,4 @@ void CSMain(uint3 id : SV_DispatchThreadID)
 
     Result[id.xy] = color;
 }
+
