@@ -11,7 +11,7 @@ Este proyecto implementa un generador de texturas Voronoi utilizando Compute Sha
   - ![greyscale](https://github.com/user-attachments/assets/6a68cc20-c160-45a7-9ca8-898e786c0040)
   - **Floor**: Crea patrones que simulan superficies de piso con opciones para intersecciones.
   -  ![floor](https://github.com/user-attachments/assets/95d75369-7f26-408c-849d-4ddfcc30220e)
-  - **Crystal**: Produce texturas con un efecto de cristal.
+  - **Inverse Hard**: Produce texturas con un efecto de cristal.
   - ![Crystal](https://github.com/user-attachments/assets/0caa9b64-1e32-48b0-aee2-268f513af0a1)
 
 - **Configuración de parámetros**:
